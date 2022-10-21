@@ -13,3 +13,16 @@ You can install the library as follows:
 virtualenv -p python3
 pip3 install -r requirements.txt
 ```
+
+# Gettting started
+A simple example can be found under `examples/01_Create_Simple_Athens_Population.py` (WIP).
+
+# Data Requirements
+[TBC]
+
+# Workflow
+[TBC]
+
+
+# TODO
+[TBC]
