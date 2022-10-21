@@ -3,8 +3,6 @@ Creates a toy population for Athens by ingesting Travel Survey data into PAM
 """
 
 # %% Import dependencies
-from athenspop import mappings
-import athenspop
 import pam
 from pam import read, write
 from pam.plot.stats import plot_activity_times, plot_leg_times
@@ -15,7 +13,10 @@ import os
 import sys
 import re
 from pathlib import Path
+
 sys.path.insert(0, os.path.join(Path(__file__).parent.absolute(), '..'))
+import athenspop
+from athenspop import mappings
 
 # %% User Input
 path_survey = '/c/Projects/athenspop/demand_data_NTUA'
