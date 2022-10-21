@@ -1,3 +1,3 @@
 click>=7.1.2
--e git+ssh://git@github.com/arup-group/osmox.git@8c494d32ad94c7b036023ea156cc6d74e9298ea1#egg=osmox
+-e git+ssh://git@github.com/arup-group/osmox.git@552510ee668124594f5abcbb835d2b10c119e4e3#egg=osmox
 -e git+ssh://git@github.com/arup-group/pam.git@391a2eff32f3a727b882d6e5e53ea4684a175b76#egg=pam
