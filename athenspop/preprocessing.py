@@ -41,6 +41,7 @@ def get_person_attributes(survey_raw: pd.DataFrame) -> pd.DataFrame:
         mappings.income)
     person_attributes['car_own'] = person_attributes['car_own'].map(
         mappings.car_own)
+    person_attributes['freq'] = 1
 
     # rename
     person_attributes.rename(
@@ -79,6 +80,7 @@ def get_trips_table(survey_raw: pd.DataFrame) -> pd.DataFrame:
     trips['time'] = trips['time'].apply(int)
     trips['tst'] = trips['time'] * 60
     trips['seq'] = trips['seq'] - 1
+    trips['freq'] = 1
 
     # zone 29 (Papagou-Cholargos) is missing from the shapefile
     # -> use zone 35 instead

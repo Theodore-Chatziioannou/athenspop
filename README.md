@@ -12,6 +12,7 @@ You can install the library as follows:
 ```
 virtualenv -p python3
 pip3 install -r requirements.txt
+pip3 install -e .
 ```
 
 # Gettting started
