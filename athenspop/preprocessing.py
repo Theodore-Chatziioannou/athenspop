@@ -37,10 +37,14 @@ def get_person_attributes(survey_raw: pd.DataFrame) -> pd.DataFrame:
         mappings.education)
     person_attributes['employment'] = person_attributes['employment'].map(
         mappings.employment)
+    person_attributes['income_all'] = person_attributes['income'].map(
+        mappings.income_all_categories)
     person_attributes['income'] = person_attributes['income'].map(
         mappings.income)
     person_attributes['car_own'] = person_attributes['car_own'].map(
         mappings.car_own)
+    person_attributes['age_group'] = person_attributes['age'].map(
+        mappings.age_group)
     person_attributes['freq'] = 1
 
     # rename
@@ -62,9 +66,14 @@ def get_person_attributes(survey_raw: pd.DataFrame) -> pd.DataFrame:
     return person_attributes
 
 
-def get_trips_table(survey_raw: pd.DataFrame) -> pd.DataFrame:
+def get_trips_table(
+    survey_raw: pd.DataFrame,
+    filter_next_day: bool = True
+    ) -> pd.DataFrame:
     """
     Create the trips table from the raw survey data
+
+    :param filter_next_day: If True, drop any trips happening after the first day.
     """
     trips = survey_raw[
         [x for x in survey_raw if x not in person_attribute_cols]
@@ -96,7 +105,14 @@ def get_trips_table(survey_raw: pd.DataFrame) -> pd.DataFrame:
     trips['day'] = trips.groupby('pid', group_keys=False)['tst'].apply(
         lambda x: (x < x.shift(1)).cumsum()
     )
-    # TODO: distribute trip times within the hour
+
+    # if activities happen during the same hour,
+    #   distribute them equally
+    trips['n_acts_hour'] = trips.groupby(['pid','time','day']).seq.transform(len)
+    trips['offset'] = (60 / trips['n_acts_hour'] * trips['seq']).round().map(int)
+    trips['tst'] = trips['tst'] + trips['offset']
+
+    # next day activities
     trips['tst'] = trips['tst'] + trips['day'] * 24 * 60
 
     # TODO: if two activities happen during the same hour, apply some offset
@@ -119,9 +135,13 @@ def get_trips_table(survey_raw: pd.DataFrame) -> pd.DataFrame:
     trips['ozone'] = trips.ozone.fillna(trips.hzone).apply(int)
 
     # trip start time
-    # arbitrarily assume 30-minute trips
+    # arbitrarily assume 10-minute trips
     # TODO: improve this assumption
-    trips['tet'] = trips['tst'] + 30
+    trips['tet'] = trips['tst'] + 10
+
+    # crop any trips that start on the second day
+    if filter_next_day:
+        trips = trips[trips['day']==0]
 
     return trips
 

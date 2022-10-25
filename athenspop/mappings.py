@@ -41,7 +41,7 @@ purpose = {
     '1: work': 'work',
     '2: return home': 'home',
     '3: education': 'education',
-    '4: market': 'market',
+    '4: market': 'shop',
     '5: recreation': 'recreation',
     '6: service': 'service',
     '7: other': 'other',
@@ -51,8 +51,31 @@ income = {
     '0: no income': 'zero',
     '1: 750 or less': 'low',
     '2: 750-1500': 'medium',
-    '3: 1500-2500': 'medium',
+    '3: 1500-2500': 'high',
     '4: 2500 or more': 'high',
+}
+
+# income_all_categories = {
+#     '0: no income': 'zero',
+#     '1: 750 or less': 'low',
+#     '2: 750-1500': 'medium_low',
+#     '3: 1500-2500': 'medium_high',
+#     '4: 2500 or more': 'high',
+# }
+
+income_all_categories = {
+    '0: no income': 'zero',
+    '1: 750 or less': 'low',
+    '2: 750-1500': 'medium',
+    '3: 1500-2500': 'high',
+    '4: 2500 or more': 'very_high',
+}
+
+age_group = {
+    **{x: '0to20' for x in range(0, 21)},
+    **{x: '21to39' for x in range(21, 40)},
+    **{x: '40to59' for x in range(40, 60)},
+    **{x: '60plus' for x in range(60, 120)},
 }
 
 zones = {

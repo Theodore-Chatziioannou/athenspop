@@ -1,5 +1,7 @@
 """
-Creates a toy population for Athens by ingesting Travel Survey data into PAM
+Similar approach with script 01_..., using OSM data for facility sampling
+
+Requires a "facilities" shapefile, created with the OSMOX library.
 """
 
 # %% Import dependencies
@@ -15,7 +17,7 @@ import matplotlib.pyplot as plt
 
 from pam import read, write
 from pam.plot.stats import plot_activity_times, plot_leg_times
-from pam.samplers.spatial import RandomPointSampler
+from pam.samplers.facility import FacilitySampler
 from pam.samplers.population import sample as population_sampler
 from pam.samplers.time import apply_jitter_to_plan
 
@@ -24,6 +26,7 @@ sys.path.insert(0, os.path.join(Path(__file__).parent.absolute(), '..'))
 
 # %% User Input
 path_survey = '/c/Projects/athenspop/demand_data_NTUA'
+path_facilities = '/c/Projects/athenspop/osm/facilities_athens/epsg_2100.geojson'
 path_outputs = '/c/Projects/athenspop/outputs'
 
 total_population = 3.8 * 10**6  # total population of Attica
@@ -77,8 +80,16 @@ zones = preprocessing.get_zones(
 )
 zones.plot()
 
-# random point-in-polygon sampling
-sampler = RandomPointSampler(geoms=zones)
+# land-use facility sampling
+facilities = gp.read_file(path_facilities)
+facilities = facilities.set_crs(epsg=2100, allow_override=True)
+for act_name in ['recreation', 'service']:
+    facilities = pd.concat([
+        facilities,
+        facilities[facilities.activity == 'other'].assign(
+            activity=act_name)
+    ], axis=0, ignore_index=True)
+sampler = FacilitySampler(facilities, zones)
 population.sample_locs(sampler)
 
 
