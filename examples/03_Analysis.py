@@ -45,8 +45,9 @@ n_trips_distribution(df, 'gender')
 
 #%% correlations between variables
 # age vs income
-df.groupby('age_group').income.value_counts(normalize=True).\
+person_attributes.groupby('age_group').income.value_counts(normalize=True).\
     unstack(level='income')[['zero', 'low', 'medium','high']].\
+    fillna(0).\
     style.format('{:,.0%}')
 
 # %% trip start hour by income group
@@ -64,6 +65,7 @@ plt.title('% of trips by hour')
 plt.show()
 
 #%% purpose by income group
-df.groupby('income').purp.value_counts(normalize=True).\
+df.groupby('gender').purp.value_counts(normalize=True).\
         unstack(level='purp').\
         style.format('{:,.0%}')
+# %%
