@@ -3,25 +3,25 @@ Simple clustering analysis
 """
 
 # %% Import dependencies
-
 import os
 from pathlib import Path
 sys.path.insert(0, os.path.join(Path(__file__).parent.absolute(), '..'))
 
-import matplotlib
-from typing import List
-import sklearn.metrics as sm
-import random
-from sklearn.cluster import AgglomerativeClustering
-import numpy as np
-from Levenshtein import ratio, hamming
-from pylab import cm
-from pam import read
-from matplotlib.patches import Patch
-import matplotlib.pyplot as plt
-import pandas as pd
-import sys
 from athenspop import preprocessing
+import sys
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+import matplotlib.ticker as mtick
+from pam import read
+from pylab import cm
+from Levenshtein import ratio, hamming
+import numpy as np
+from sklearn.cluster import AgglomerativeClustering
+import random
+import sklearn.metrics as sm
+from typing import List
+import matplotlib
 
 
 # %% User Input
@@ -79,6 +79,7 @@ legend_elements = [Patch(edgecolor=v, facecolor=v, label=k)
 
 # %% Encode plans
 plans = [person.plan for hid, pid, person in population.people()]
+idx = [(hid, pid) for hid, pid, person in population.people()]
 
 
 def create_plan_sequence(plan) -> str:
@@ -270,4 +271,26 @@ plot_plan_breakdowns_all_clusters_tiles(
 # plot a specific cluster
 # plot_plan_breakdowns(np.array(seqs)[np.where(
 #     model.labels_ == 1)[0]], normalize=True)
-#%%
+# %% Analyse/plot person characteristics in each cluster.
+attributes = pd.DataFrame(
+    [{**{'hid': hid, 'pid': pid}, **person.attributes}
+        for hid, pid, person in population.people()]
+)
+attributes['cluster'] = model.labels_
+attributes = pd.concat([attributes, attributes.assign(cluster='total')], axis=0)
+
+vars = ['gender', 'education', 'employment',
+        'income', 'car_own', 'age_group']
+for var in vars:
+    ax = attributes.groupby('cluster')[var].\
+        value_counts(normalize=True).unstack(level=1).\
+        plot(kind='bar', stacked=True)    
+    ax.yaxis.set_major_formatter(
+        mtick.FuncFormatter(lambda x, _: '{:.0%}'.format(x)))
+    plt.ylim(0, 1)
+    plt.ylabel('Population share')
+    plt.title(f'Cluster personal attributes, by {var}')
+    export_path=os.path.join(
+            path_outputs, f'cluster_attributes_{var}.png')
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
+    plt.savefig(export_path, bbox_inches='tight')
