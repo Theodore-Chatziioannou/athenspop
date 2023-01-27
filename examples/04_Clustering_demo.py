@@ -22,7 +22,7 @@ import random
 import sklearn.metrics as sm
 from typing import List
 import matplotlib
-
+import statsmodels.api as stm
 
 # %% User Input
 path_survey = '/c/Projects/athenspop/demand_data_NTUA'
@@ -282,9 +282,9 @@ attributes = pd.concat([attributes, attributes.assign(cluster='total')], axis=0)
 vars = ['gender', 'education', 'employment',
         'income', 'car_own', 'age_group']
 for var in vars:
-    ax = attributes.groupby('cluster')[var].\
-        value_counts(normalize=True).unstack(level=1).\
-        plot(kind='bar', stacked=True)    
+    df_plot = attributes.groupby('cluster')[var].\
+        value_counts(normalize=True).unstack(level=1)
+    ax = df_plot.plot(kind='bar', stacked=True)    
     ax.yaxis.set_major_formatter(
         mtick.FuncFormatter(lambda x, _: '{:.0%}'.format(x)))
     plt.ylim(0, 1)
@@ -294,3 +294,26 @@ for var in vars:
             path_outputs, f'cluster_attributes_{var}.png')
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
     plt.savefig(export_path, bbox_inches='tight')
+
+
+#%% Statistical analysis
+def cluster_participation_linear_test(cluster: int, attribute: str, value: str):
+    """
+    Linear regression between cluster participation and a respondent attribute
+    """
+    y = np.array((model.labels_==cluster) * 1)
+    x = np.array((attributes[attributes.cluster!='total'][attribute]==value) * 1)
+    results = stm.OLS(
+        endog=y,
+        exog=stm.add_constant(x)
+    )
+    results = results.fit()
+
+    return results
+
+# print(cluster_participation_linear_test(6, 'car_own', 'no').summary())
+# print(cluster_participation_linear_test(6, 'income', 'high').summary())
+# print(cluster_participation_linear_test(6, 'education', 'tertiary').summary())
+# print(cluster_participation_linear_test(2, 'age_group', '60plus').summary())
+# print(cluster_participation_linear_test(3, 'employment', 'active').summary())
+print(cluster_participation_linear_test(4, 'gender', 'male').summary())
