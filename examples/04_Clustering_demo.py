@@ -24,6 +24,13 @@ from typing import List
 import matplotlib
 import statsmodels.api as stm
 
+import biogeme
+import biogeme.database as db
+import biogeme.biogeme as bio
+import biogeme.models as models
+from biogeme.expressions import Beta
+
+
 # %% User Input
 path_survey = '/c/Projects/athenspop/demand_data_NTUA'
 path_facilities = '/c/Projects/athenspop/osm/facilities_athens/epsg_2100.geojson'
@@ -294,6 +301,54 @@ for var in vars:
             path_outputs, f'cluster_attributes_{var}.png')
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
     plt.savefig(export_path, bbox_inches='tight')
+
+#%% Same results as a table
+attribute_breakdown = {
+    var: attributes.groupby('cluster')[var].\
+        value_counts(normalize=True).unstack(level=1).fillna(0) for var in vars
+}
+
+#%% plan choice estimation
+
+#%% choice set
+# x_vars = ['gender', 'age_group']
+x_vars = ['gender', 'employment', 'income', 'car_own', 'age_group', 'education']
+base_cluster = 3
+cluster_ids = set(model.labels_)
+
+df_choice = attributes[attributes.cluster!='total'].dropna(subset=x_vars).copy()
+df_choice['cluster'] = df_choice['cluster'].apply(int)
+df_choice = pd.get_dummies(df_choice)
+database = db.Database('attributes', df_choice)
+
+# utility function
+V = {}
+av = {}
+for cluster_id in cluster_ids:
+    av[cluster_id]=1 # availability
+    V[cluster_id] = Beta(
+        f'int_{cluster_id}', 0, None, None, 
+        (cluster_id==base_cluster) * 1) # intercept
+    for x_var in x_vars:
+        bins = set(attributes.dropna(subset=x_vars)[x_var])
+        for i, x_bin in enumerate(bins):
+            V[cluster_id] += Beta(
+                f'beta_{x_var}_{x_bin}_{cluster_id}', 0, None, None, 
+                ((i==0) | (cluster_id==base_cluster)) * 1
+                ) * database.variables[f'{x_var}_{x_bin}']
+
+# estimate a logit model
+logprob = models.loglogit(V, av, database.variables['cluster'])
+cmodel = biogeme.biogeme.BIOGEME(database, logprob)
+cmodel.modelName = '01logit'
+cmodel.generateHtml=False
+cmodel.generatePickle=False
+cmodel.saveIterations=False
+results = cmodel.estimate()
+pandasResults = results.getEstimatedParameters()
+pandasResults.round(3).to_csv(os.path.join(path_outputs, 'betas_cluster.csv'))
+
+print('MNL results: \n', pandasResults.round(3))
 
 
 #%% Statistical analysis
