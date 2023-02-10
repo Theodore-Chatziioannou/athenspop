@@ -23,6 +23,38 @@ def read_survey(path: str) -> pd.DataFrame:
 
     return survey_raw
 
+def fix_nobackhome(df):
+    x = 4
+    
+    df['ntrips'] = np.where(df.dest5>0,5,np.where(df.dest4>0, 4, np.where(df.dest3>0,3, np.where(df.dest2>0,2, np.where(df.dest1>0,1,0)))))
+    
+    df["x2"] = (df.ntrips == 2) & (df.purp2 != '2: return home') & (df.purp2 != '5: recreation')
+    df.dest3 = np.where(df.x2 == True, df.home, df.dest3)
+    df.purp3 = np.where(df.x2 == True, '2: return home', df.purp3)
+    df.mode3 = np.where(df.x2 == True, df.mode2, df.mode3) # with the same mode he/she returned back
+    df.time3 = np.where(df.x2 == True, df.time2 + x, df.time3)
+    
+    df["x3"] = (df.ntrips == 3) & (df.purp3 != '2: return home') & (df.purp3 != '5: recreation')
+    df.dest4 = np.where(df.x3 == True, df.home, df.dest4)
+    df.purp4 = np.where(df.x3 == True, '2: return home', df.purp4)
+    df.mode4 = np.where(df.x3 == True, df.mode3, df.mode4)
+    df.time4 = np.where(df.x3 == True, df.time3 + x, df.time4)
+    
+    df["x4"] = (df.ntrips == 4) & (df.purp4 != '2: return home') & (df.purp4 != '5: recreation') # this is per trip
+    df.dest5 = np.where(df.x4 == True, df.home, df.dest5)
+    df.purp5 = np.where(df.x4 == True, '2: return home', df.purp5)
+    df.mode5 = np.where(df.x4 == True, df.mode4, df.mode5)
+    df.time5 = np.where(df.x4 == True, df.time4 + x, df.time5)
+    
+    df["x5"] = (df.ntrips == 5) & (df.purp5 != '2: return home') & (df.purp5 != '5: recreation') # this is per trip
+    df["purp6"] = np.where(df.x5 == True, '2: return home', np.nan)
+    df["dest6"] = np.where(df.x5 == True, df.home, np.nan)
+    df["mode6"] = np.where(df.x5 == True, df.mode5, np.nan)
+    df["time6"] = np.where(df.x5 == True, df.time5 + x, np.nan)
+    df['prob'] = np.where((df.x5 == True) | (df.x4 == True) | (df.x3 == True) | (df.x2 == True), 1, 0) # so these are the problematic pids...
+    
+    df = df.drop(columns = ['x2', 'x3', 'x4', 'x5', 'ntrips', 'prob'])
+    return df
 
 def get_person_attributes(survey_raw: pd.DataFrame) -> pd.DataFrame:
     """
