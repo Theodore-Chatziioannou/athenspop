@@ -5,10 +5,10 @@ Simple clustering analysis
 # %% Import dependencies
 import os
 from pathlib import Path
+import sys
 sys.path.insert(0, os.path.join(Path(__file__).parent.absolute(), '..'))
 
 from athenspop import preprocessing
-import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
@@ -23,6 +23,7 @@ import sklearn.metrics as sm
 from typing import List
 import matplotlib
 import statsmodels.api as stm
+import datetime
 
 import biogeme
 import biogeme.database as db
@@ -51,7 +52,8 @@ trips = preprocessing.get_trips_table(survey_raw)
 # %% create PAM population
 population = read.load_travel_diary(
     trips=trips,
-    persons_attributes=person_attributes
+    persons_attributes=person_attributes,
+    tour_based=False
 )
 
 # activity code lookups
@@ -169,7 +171,7 @@ for metric in ['calinksi_harabasz', 'silhouette']:
     plt.show()
 
 # %% apply the clustering algorithm after selecting the number of clusters
-n_clusters = 8
+n_clusters = 6
 
 model = AgglomerativeClustering(
     n_clusters=n_clusters, linkage='complete', metric='precomputed'
