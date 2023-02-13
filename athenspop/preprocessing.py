@@ -3,134 +3,130 @@ from athenspop import mappings
 import numpy as np
 import geopandas as gp
 from shapely.geometry import box
-import statistic as stat
+from . import mappings
+# import statistic as stat
 
 person_attribute_cols = [
     'gender', 'age', 'education', 'employment', 'income',
     'car_own', 'home']
 
-def read_survey(path: str) -> pd.DataFrame:
+def read_survey(path: str, cleanup: bool = True) -> pd.DataFrame:
     """
     Read the raw travel survey data
+
+    :param cleanup: Whether to remove some errors such as missing return trips
     """
     survey_raw = pd.read_csv(path)
     print(len(survey_raw))
     survey_raw = survey_raw.dropna(subset=['home', 'age'])
     survey_raw['home'] = survey_raw['home'].map(int)
     survey_raw['age'] = survey_raw['age'].map(int)
+
+    if cleanup:
+        survey_raw = step_day(survey_raw)
+        survey_raw = market_prob(survey_raw)
+        survey_raw = fix_nobackhome(survey_raw)
+
     print(len(survey_raw))
 
     return survey_raw
 
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-def nights(df):
-    # this function add extra 24 (one day), if time i < time i + 1 - next activity
-    # so time >= 24 refer to the next day...
-    df["time2"] = np.where(df.time2<df.time1, df.time2 + 24, df.time2)
-    df["time3"] = np.where(df.time3<df.time2, df.time3 + 24, df.time3)
-    df["time4"] = np.where(df.time4<df.time3, df.time4 + 24, df.time4)
-    df["time5"] = np.where(df.time5<df.time4, df.time4 + 24, df.time5)
-    return(df)
+def step_day(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    This function adds extra 24 (one day), if time i < time i + 1 - next activity
+    So, time >= 24 refer to the next day...  
+    """
+    for i in range(2, 6): 
+        df[f'time{i}'] = np.where(df[f'time{i}']<df[f'time{i-1}'], df[f'time{i}'] + 24, df[f'time{i}'])
 
-def prpdur_est(df, prp):
-    # this function estimates duration of activities based on the completed ones
-    # it saves them in a dataframe
-    sdf = pd.DataFrame({'purp': prp,'beftime': df.loc[(df.purp1 == prp), 'time1'],
-                              'afttime':  df.loc[(df.purp1 == prp), 'time2']})
-    sdf = pd.concat([sdf, pd.DataFrame({'purp': prp,'beftime': df.loc[(df.purp2 == prp), 'time2'],
-                              'afttime':  df.loc[(df.purp2 == prp), 'time3']})])
-    sdf = pd.concat([sdf, pd.DataFrame({'purp': prp,'beftime': df.loc[(df.purp3 == prp), 'time3'],
-                              'afttime':  df.loc[(df.purp3 == prp), 'time4']})])
-    sdf = pd.concat([sdf, pd.DataFrame({'purp': prp,'beftime': df.loc[(df.purp4 == prp), 'time4'],
-                              'afttime':  df.loc[(df.purp4 == prp), 'time5']})])
-    sdf['dur'] = sdf.afttime - sdf.beftime
-    sdf = sdf.dropna()
-    return sdf
+    return df
 
-def prpdur_stat(df):
-    # estimate mean and std.dev per trip puropose
-    statdf = pd.DataFrame({'prp': ['1: work', '2: return home', '3: education',
-                               '4: market', '5: recreation', '6: service', '7: other']}) # here we may replace it with mappings
-    statdf = statdf.set_index('prp')
-    for item in statdf.index:
-        statdf.loc[item, "durmean"] = stat.mean(prpdur_est(df, item).dur) 
-        statdf.loc[item, "dursd"] = stat.stdev(prpdur_est(df, item).dur)
+def get_durations(df: pd.DataFrame, prp: str) -> pd.Series:
+    """
+    Estimates duration of activities based on the completed ones.
+
+    :param prp: Reported trip purpose
+    """
+    sdf =pd.concat(
+            [
+                df[df[f'purp{i}']==prp][[f'time{i}', f'time{i+1}']].\
+                    set_axis(['start_time', 'end_time'], axis=1) \
+                    for i in range(1, 5)
+            ],
+            axis=0,
+            ignore_index=True
+        )
+    return sdf['end_time'] - sdf['start_time']
+
+
+def prpdur_stat(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Estimates mean and standard deviation of duration for each trip purpose
+
+    :param df: Raw trip survey dataframe
+    """
+    purposes = list(mappings.purpose.keys())
+    durations = {prp: get_durations(df, prp) for prp in purposes}
+    statdf = pd.DataFrame({
+            'prp': k,
+            'dur_mean': v.mean(),
+            'dur_sd': v.std()
+        } for k, v in durations.items()
+    ).set_index('prp')
     return statdf
 
-def timeupd(xcheck, df):
-    # this function fill missing times from the missing link
-    if xcheck == "x2": # if trip 2 is the last one without returning home
-        prp = "purp2" # then save the purpose 2 and time 2.
-        tim1 = "time2"
-        tim2 = "time3" # to estimate time 3, where you return home
-    elif xcheck == "x3":
-        prp = "purp3"
-        tim1 = "time3"
-        tim2 = "time4"
-    elif xcheck == "x4":
-        prp = "purp4"
-        tim1 = "time4"
-        tim2 = "time5"
-    elif xcheck == "x5":
-        prp = "purp5"
-        tim1 = "time5"
-        tim2 = "time6"
+def timeupd(df, i: int, infill: pd.Series, min_duration: int=1):
+    """
+    Fills missing times from the missing trip.
+
+    :param i: the trip id to update (1-5)
+    :param infill: boolean series indicating the trips that need infilling
+    :param min_duration: Minimun sampled duration (in hours)
+    """
+    prp = f'purp{i}'
+    tim1 = f'time{i}'
+    tim2 = f'time{i+1}'
         
     statdf = prpdur_stat(df) # table with mean and std.dev per purpose
-    for item in df.loc[df[xcheck] == True].index:
-        x = int(np.round(np.random.normal(statdf.loc[statdf.index == df.loc[item, prp], 'durmean'],
-                         statdf.loc[statdf.index == df.loc[item, prp], 'dursd'])))
-        # it needs to be an integer value
-        x = abs(x) # we keep only the positive, but it does not matter after the time upd in the beggining
-        if x == 0: x = 1 # if you draw zero, plus one
-        df.loc[item, tim2] = df.loc[item, tim1] + x # estimatio of new time
+    for item in df.loc[infill].index:
+        dur_mean = statdf.loc[statdf.index == df.loc[item, prp], 'dur_mean']
+        dur_sd = statdf.loc[statdf.index == df.loc[item, prp], 'dur_sd']
+        x = int(np.round(np.random.normal(dur_mean, dur_sd)))
+        x = max(x, min_duration)
+        df.loc[item, tim2] = df.loc[item, tim1] + x # estimation of new time
     return df[tim2]
 
-def fix_nobackhome(df):
-    x = 4
-    
-    df['ntrips'] = np.where(df.dest5>0,5,np.where(df.dest4>0, 4, np.where(df.dest3>0,3, np.where(df.dest2>0,2, np.where(df.dest1>0,1,0)))))
-    df = df.set_index("pid")
-    df["x2"] = (df.ntrips == 2) & (df.purp2 != '2: return home') & (df.purp2 != '5: recreation') # return home purpose
-    df.dest3 = np.where(df.x2 == True, df.home, df.dest3) # home location to the destinatio
-    df.purp3 = np.where(df.x2 == True, '2: return home', df.purp3)
-    df.mode3 = np.where(df.x2 == True, df.mode2, df.mode3) # with the same mode he/she returned back
-    df.time3 = timeupd("x2", df)
-    
-    df["x3"] = (df.ntrips == 3) & (df.purp3 != '2: return home') & (df.purp3 != '5: recreation')
-    df.dest4 = np.where(df.x3 == True, df.home, df.dest4)
-    df.purp4 = np.where(df.x3 == True, '2: return home', df.purp4)
-    df.mode4 = np.where(df.x3 == True, df.mode3, df.mode4)
-    df.time4 = timeupd("x3", df)
-    
-    df["x4"] = (df.ntrips == 4) & (df.purp4 != '2: return home') & (df.purp4 != '5: recreation') # this is per trip
-    df.dest5 = np.where(df.x4 == True, df.home, df.dest5)
-    df.purp5 = np.where(df.x4 == True, '2: return home', df.purp5)
-    df.mode5 = np.where(df.x4 == True, df.mode4, df.mode5)
-    df.time5 = timeupd("x4", df)
-    
-    df["x5"] = (df.ntrips == 5) & (df.purp5 != '2: return home') & (df.purp5 != '5: recreation') # this is per trip
-    df["purp6"] = np.where(df.x5 == True, '2: return home', np.nan)
-    df["dest6"] = np.where(df.x5 == True, df.home, np.nan)
-    df["mode6"] = np.where(df.x5 == True, df.mode5, np.nan)
-    df["time6"] = np.where(df.x5 == True, df.time5 + x, np.nan)
-    df['time6'] = timeupd("x5", df)
-    # df['prob'] = np.where((df.x5 == True) | (df.x4 == True) | (df.x3 == True) | (df.x2 == True), 1, 0) # this is the column with problematic data
-    df = df.drop(columns = ['x2', 'x3', 'x4', 'x5', 'ntrips'])
+def fix_nobackhome(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add a return trip home (where it is missing).
+    """    
+    n_trips = np.select([df[f'dest{i}']>0 for i in range(5, 0, -1)], range(5, 0, -1))
+    df['purp6'] = np.nan
+    df['mode6'] = np.nan
+    df['dest6'] = np.nan
+    df['time6'] = np.nan
+    for i in range(2, 6):
+        j = i + 1
+        # check if the return trip is missing
+        infill = (n_trips == i) & (df[f'purp{i}'] != '2: return home') & (df[f'purp{i}']  != '5: recreation')
+        
+        # update next trip's destination, purpose, mode and time
+        df[f'dest{j}'] = np.where(infill, df.home, df[f'dest{j}']) # home location to the destinatio
+        df[f'purp{j}'] = np.where(infill, '2: return home', df[f'purp{j}'])
+        df[f'mode{j}'] = np.where(infill, df[f'mode{i}'], df[f'mode{j}']) # with the same mode he/she returned back
+        df[f'time{j}'] = timeupd(df, i, infill)
 
     return df
 
-def market_prob(df):
-    df.purp1 = np.where((df.time1>21) & (df.purp1 =='4: market'), '7: other', df.purp1)
-    df.purp2 = np.where((df.time2>21) & (df.purp2 =='4: market'), '7: other', df.purp2)
-    df.purp3 = np.where((df.time3>21) & (df.purp3 =='4: market'), '7: other', df.purp3)
-    df.purp4 = np.where((df.time4>21) & (df.purp4 =='4: market'), '7: other', df.purp4)
-    df.purp5 = np.where((df.time5>21) & (df.purp5 =='4: market'), '7: other', df.purp5)
+def market_prob(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Rename market activities starting after 21:00 as "other" 
+    """
+    for i in range(1, 6):
+        df[f'purp{i}'] = np.where((df[f'time{i}']>21) & (df[f'purp{i}'] =='4: market'), '7: other', df[f'purp{i}'])
+
     return df
-
-
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def get_person_attributes(survey_raw: pd.DataFrame) -> pd.DataFrame:
     """
@@ -190,7 +186,7 @@ def get_trips_table(
     trips.columns = pd.MultiIndex.from_tuples([
         (int(x[-1]), x[:-1]) for x in trips.columns
     ], names=['seq', ''])
-    trips = trips.stack(level=0).reset_index().sort_values(['pid', 'seq'])
+    trips = trips.stack(level=0).reset_index().sort_values(['pid', 'seq']).dropna(subset='mode')
     trips['hid'] = trips['pid']
     trips['hzone'] = trips.pid.map(survey_raw.set_index('pid')['home'])
     trips['dest'] = trips['dest'].apply(int)
@@ -213,6 +209,7 @@ def get_trips_table(
     trips['day'] = trips.groupby('pid', group_keys=False)['tst'].apply(
         lambda x: (x < x.shift(1)).cumsum()
     )
+    trips['day'] += np.floor(trips['tst']/24/60).round(0).apply(int)
 
     # if activities happen during the same hour,
     #   distribute them equally
