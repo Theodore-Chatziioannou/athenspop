@@ -46,7 +46,7 @@ survey_raw = preprocessing.read_survey(
 person_attributes = preprocessing.get_person_attributes(survey_raw)
 
 # trips dataset
-trips = preprocessing.get_trips_table(survey_raw)
+trips = preprocessing.get_trips_table(survey_raw, filter_next_day=True)
 
 
 # %% create PAM population
@@ -56,6 +56,23 @@ population = read.load_travel_diary(
     tour_based=False
 )
 
+# limit plan to 24-hours
+for hid, pid, person in population.people():
+    person.plan.crop()
+
+
+#%%
+# print(len(population))
+# hh_rm = [
+#     hid for hid, pid, person in population.people() \
+#         if list(person.plan.activities)[-1].act not in ['home', 'recreation']
+# ]
+# for hid in hh_rm:
+#     del population.households[hid]
+# print(len(population))
+
+
+#%%
 # activity code lookups
 mapping_purposes = {
     'business': 'b',
@@ -171,7 +188,7 @@ for metric in ['calinksi_harabasz', 'silhouette']:
     plt.show()
 
 # %% apply the clustering algorithm after selecting the number of clusters
-n_clusters = 6
+n_clusters = 8
 
 model = AgglomerativeClustering(
     n_clusters=n_clusters, linkage='complete', metric='precomputed'
@@ -286,6 +303,7 @@ attributes = pd.DataFrame(
         for hid, pid, person in population.people()]
 )
 attributes['cluster'] = model.labels_
+attributes.to_csv(os.path.join(path_outputs, 'attributes_cluster.csv'), index=False)
 attributes = pd.concat([attributes, attributes.assign(cluster='total')], axis=0)
 
 vars = ['gender', 'education', 'employment',
@@ -310,12 +328,29 @@ attribute_breakdown = {
         value_counts(normalize=True).unstack(level=1).fillna(0) for var in vars
 }
 
+#%% attributes correlation
+attributes['income_ordinal'] = attributes['income'].map(
+    {v:k for k, v in enumerate(['zero','low','medium','high'])}
+)
+attributes['education_ordinal'] = attributes['education'].map(
+    {v:k for k, v in enumerate(['primary', 'secondary', 'tertiary'])}
+)
+attributes['age_group_ordinal'] = attributes['age_group'].map(
+    {v:k for k, v in enumerate(['0to20', '21to39', '40to59', '60plus'])}
+)
+attributes['is_female'] = (attributes['gender'] == 'female') * 1
+attributes['owns_car'] = (attributes['car_own'] == 'yes') * 1
+
+for corr_method in ['spearman', 'kendall']:
+    attributes.drop(columns=['hid','pid','hzone', 'cluster']).corr(corr_method).\
+        to_csv(os.path.join(path_outputs, f'correlation_attributes_{corr_method}.csv'))
+
 #%% plan choice estimation
 
 #%% choice set
 # x_vars = ['gender', 'age_group']
 x_vars = ['gender', 'employment', 'income', 'car_own', 'age_group', 'education']
-base_cluster = 3
+base_cluster = pd.Series(model.labels_).value_counts().idxmax() # use cluster with most observations as base
 cluster_ids = set(model.labels_)
 
 df_choice = attributes[attributes.cluster!='total'].dropna(subset=x_vars).copy()
@@ -352,25 +387,4 @@ pandasResults.round(3).to_csv(os.path.join(path_outputs, 'betas_cluster.csv'))
 
 print('MNL results: \n', pandasResults.round(3))
 
-
-#%% Statistical analysis
-def cluster_participation_linear_test(cluster: int, attribute: str, value: str):
-    """
-    Linear regression between cluster participation and a respondent attribute
-    """
-    y = np.array((model.labels_==cluster) * 1)
-    x = np.array((attributes[attributes.cluster!='total'][attribute]==value) * 1)
-    results = stm.OLS(
-        endog=y,
-        exog=stm.add_constant(x)
-    )
-    results = results.fit()
-
-    return results
-
-# print(cluster_participation_linear_test(6, 'car_own', 'no').summary())
-# print(cluster_participation_linear_test(6, 'income', 'high').summary())
-# print(cluster_participation_linear_test(6, 'education', 'tertiary').summary())
-# print(cluster_participation_linear_test(2, 'age_group', '60plus').summary())
-# print(cluster_participation_linear_test(3, 'employment', 'active').summary())
-print(cluster_participation_linear_test(4, 'gender', 'male').summary())
+#%%

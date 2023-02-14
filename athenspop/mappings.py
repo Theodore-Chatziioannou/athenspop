@@ -43,7 +43,7 @@ purpose = {
     '3: education': 'education',
     '4: market': 'shop',
     '5: recreation': 'recreation',
-    '6: service': 'service',
+    '6: service': 'other', # small sample size
     '7: other': 'other',
 }
 

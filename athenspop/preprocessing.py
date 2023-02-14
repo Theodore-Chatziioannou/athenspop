@@ -4,13 +4,18 @@ import numpy as np
 import geopandas as gp
 from shapely.geometry import box
 from . import mappings
-# import statistic as stat
+import random
 
 person_attribute_cols = [
     'gender', 'age', 'education', 'employment', 'income',
     'car_own', 'home']
 
-def read_survey(path: str, cleanup: bool = True) -> pd.DataFrame:
+def read_survey(
+    path: str, 
+    fix_day: bool = True,
+    fix_return: bool = True,
+    fix_market: bool = True,
+    ) -> pd.DataFrame:
     """
     Read the raw travel survey data
 
@@ -22,11 +27,10 @@ def read_survey(path: str, cleanup: bool = True) -> pd.DataFrame:
     survey_raw['home'] = survey_raw['home'].map(int)
     survey_raw['age'] = survey_raw['age'].map(int)
 
-    if cleanup:
-        survey_raw = step_day(survey_raw)
-        survey_raw = market_prob(survey_raw)
-        survey_raw = fix_nobackhome(survey_raw)
-
+    if fix_day: survey_raw = step_day(survey_raw)
+    if fix_return: survey_raw = fix_nobackhome(survey_raw, duration_distribution='empirical')
+    if fix_market: survey_raw = fix_market_window(survey_raw)
+    
     print(len(survey_raw))
 
     return survey_raw
@@ -42,7 +46,7 @@ def step_day(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def get_durations(df: pd.DataFrame, prp: str) -> pd.Series:
+def get_durations(df: pd.DataFrame, prp: str) -> pd.DataFrame:
     """
     Estimates duration of activities based on the completed ones.
 
@@ -57,7 +61,8 @@ def get_durations(df: pd.DataFrame, prp: str) -> pd.Series:
             axis=0,
             ignore_index=True
         )
-    return sdf['end_time'] - sdf['start_time']
+    sdf['duration'] = sdf['end_time'] - sdf['start_time']
+    return sdf
 
 
 def prpdur_stat(df: pd.DataFrame) -> pd.DataFrame:
@@ -67,7 +72,7 @@ def prpdur_stat(df: pd.DataFrame) -> pd.DataFrame:
     :param df: Raw trip survey dataframe
     """
     purposes = list(mappings.purpose.keys())
-    durations = {prp: get_durations(df, prp) for prp in purposes}
+    durations = {prp: get_durations(df, prp)['duration'] for prp in purposes}
     statdf = pd.DataFrame({
             'prp': k,
             'dur_mean': v.mean(),
@@ -76,31 +81,89 @@ def prpdur_stat(df: pd.DataFrame) -> pd.DataFrame:
     ).set_index('prp')
     return statdf
 
-def timeupd(df, i: int, infill: pd.Series, min_duration: int=1):
+
+def create_duration_sampler_gaussian(df: pd.DataFrame, **kwargs):
+    statdf = prpdur_stat(df)
+    def sample(purp, *args, **kwargs):
+        dur_mean = statdf.loc[purp, 'dur_mean']
+        dur_sd = statdf.loc[purp, 'dur_sd']
+        x = int(np.round(np.random.normal(dur_mean, dur_sd)))
+        return x
+    return sample
+
+
+def get_durations_ecdf(df, time_period_hours=6) -> pd.Series:
+    """
+    Get the empirical cumulative distribution of durations,
+        for each purpose and time period
+    
+    :param time_period_hours: how many hours in each time period
+    """
+    durations = []
+    for purp in mappings.purpose.keys():
+        durations.append(
+            get_durations(df, purp).dropna().applymap(int).assign(purp=purp)
+        )
+    durations = pd.concat(durations, axis=0)
+    # durations['purp'] = durations['purp'].map(mappings.purpose)
+    durations['start_period'] = durations['start_time'] // time_period_hours
+    durations = pd.concat([durations, durations.assign(start_period='total')])
+
+    ecdf = durations.groupby(['purp','start_period'])['duration'].\
+            apply(lambda x: x.value_counts(normalize=True).sort_index().cumsum())
+
+    return ecdf
+
+def create_duration_sampler_empirical(df: pd.DataFrame, time_period_hours=6):
+    ecdf = get_durations_ecdf(df, time_period_hours=time_period_hours)
+
+    def interpolate(x, ecdf, purp, start_period, min_duration=1):
+        if (purp, start_period) not in ecdf.index:
+            start_period = 'total'
+
+        ys = [0] + list(ecdf.loc[purp, start_period].index)
+        xs = [0] + list(ecdf.loc[purp, start_period].values)
+        duration = np.interp(x, xs, ys)
+        duration = max(duration, min_duration)
+        return duration
+
+    def sample_duration(purp, hour):
+        time_period = hour // time_period_hours
+        return interpolate(random.random(), ecdf, purp, time_period)
+
+    return sample_duration
+
+def create_duration_sampler(df, distribution='gaussian'):
+    if distribution == 'gaussian':
+        return create_duration_sampler_gaussian(df)
+    elif distribution == 'empirical':
+        return create_duration_sampler_empirical(df)
+    else:
+        raise ValueError('Please provide a valid sampler type')
+
+def timeupd(df, duration_sampler, i: int, infill: pd.Series, min_duration: int=1) -> None:
     """
     Fills missing times from the missing trip.
 
-    :param i: the trip id to update (1-5)
+    :param i: the trip sequence to update (1-5)
     :param infill: boolean series indicating the trips that need infilling
     :param min_duration: Minimun sampled duration (in hours)
-    """
-    prp = f'purp{i}'
-    tim1 = f'time{i}'
-    tim2 = f'time{i+1}'
-        
-    statdf = prpdur_stat(df) # table with mean and std.dev per purpose
-    for item in df.loc[infill].index:
-        dur_mean = statdf.loc[statdf.index == df.loc[item, prp], 'dur_mean']
-        dur_sd = statdf.loc[statdf.index == df.loc[item, prp], 'dur_sd']
-        x = int(np.round(np.random.normal(dur_mean, dur_sd)))
-        x = max(x, min_duration)
-        df.loc[item, tim2] = df.loc[item, tim1] + x # estimation of new time
-    return df[tim2]
+    """    
+    for idx, values in df.loc[infill].iterrows():
+        prp = values[f'purp{i}']
+        start_time = values[f'time{i}']
 
-def fix_nobackhome(df: pd.DataFrame) -> pd.DataFrame:
+        # sample new duration
+        duration = duration_sampler(prp, start_time)
+        duration = max(duration, min_duration)
+
+        df.loc[idx, f'time{i+1}']  = start_time + duration
+
+def fix_nobackhome(df: pd.DataFrame, duration_distribution='empirical') -> pd.DataFrame:
     """
     Add a return trip home (where it is missing).
-    """    
+    """
+    duration_sampler = create_duration_sampler(df, duration_distribution)    
     n_trips = np.select([df[f'dest{i}']>0 for i in range(5, 0, -1)], range(5, 0, -1))
     df['purp6'] = np.nan
     df['mode6'] = np.nan
@@ -115,11 +178,11 @@ def fix_nobackhome(df: pd.DataFrame) -> pd.DataFrame:
         df[f'dest{j}'] = np.where(infill, df.home, df[f'dest{j}']) # home location to the destinatio
         df[f'purp{j}'] = np.where(infill, '2: return home', df[f'purp{j}'])
         df[f'mode{j}'] = np.where(infill, df[f'mode{i}'], df[f'mode{j}']) # with the same mode he/she returned back
-        df[f'time{j}'] = timeupd(df, i, infill)
+        timeupd(df, duration_sampler, i, infill)
 
     return df
 
-def market_prob(df: pd.DataFrame) -> pd.DataFrame:
+def fix_market_window(df: pd.DataFrame) -> pd.DataFrame:
     """
     Rename market activities starting after 21:00 as "other" 
     """
@@ -213,17 +276,16 @@ def get_trips_table(
 
     # if activities happen during the same hour,
     #   distribute them equally
-    trips['n_acts_hour'] = trips.groupby(['pid','time','day']).seq.transform(len)
-    trips['offset'] = (60 / trips['n_acts_hour'] * trips['seq']).round().map(int)
+    # TODO: if two activities happen during the same hour, apply some offset
+    trips['same_hour'] = trips.groupby('pid', group_keys=False)['time'].apply(
+        lambda x: (x == x.shift(1))
+    )
+    offset = lambda x: (60/len(x)*x.cumsum()).round().map(int)
+    trips['offset'] = trips.groupby(['pid','time','day']).same_hour.transform(offset)
     trips['tst'] = trips['tst'] + trips['offset']
 
     # next day activities
     trips['tst'] = trips['tst'] + trips['day'] * 24 * 60
-
-    # TODO: if two activities happen during the same hour, apply some offset
-    trips['same_hour'] = trips.groupby('pid', group_keys=False)['tst'].apply(
-        lambda x: (x == x.shift(1))
-    )
 
     # rename fields
     trips.rename(
