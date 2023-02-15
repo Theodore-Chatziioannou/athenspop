@@ -185,7 +185,11 @@ for metric in ['calinksi_harabasz', 'silhouette']:
     scores.set_index('clusters')[metric].plot()
     plt.title(f'{metric} score')
     plt.xlabel('Number of clusters')
+    export_path=os.path.join(
+        path_outputs, f'score_{metric}.png')
+    plt.savefig(export_path, bbox_inches='tight')
     plt.show()
+
 
 # %% apply the clustering algorithm after selecting the number of clusters
 n_clusters = 8
@@ -328,6 +332,13 @@ attribute_breakdown = {
         value_counts(normalize=True).unstack(level=1).fillna(0) for var in vars
 }
 
+export_path = os.path.join(path_outputs, 'attributes_breakdown.txt')
+if os.path.exists(export_path):
+    os.remove(export_path)
+for k, v in attribute_breakdown.items():
+    v.round(3).to_csv(export_path, mode='a', sep='\t')
+
+
 #%% attributes correlation
 attributes['income_ordinal'] = attributes['income'].map(
     {v:k for k, v in enumerate(['zero','low','medium','high'])}
@@ -344,6 +355,12 @@ attributes['owns_car'] = (attributes['car_own'] == 'yes') * 1
 for corr_method in ['spearman', 'kendall']:
     attributes.drop(columns=['hid','pid','hzone', 'cluster']).corr(corr_method).\
         to_csv(os.path.join(path_outputs, f'correlation_attributes_{corr_method}.csv'))
+
+# kendall corellation with dummy values
+corr_binary = attributes.copy()
+corr_binary['cluster'] = corr_binary['cluster'].map(str)
+corr_binary = pd.get_dummies(corr_binary[['education', 'employment','income', 'age_group','cluster']]).corr('kendall')
+corr_binary.to_csv(os.path.join(path_outputs, f'correlation_attributes_binary_kendall.csv'))
 
 #%% plan choice estimation
 
