@@ -8,7 +8,7 @@ import random
 
 person_attribute_cols = [
     'gender', 'age', 'education', 'employment', 'income',
-    'car_own', 'home']
+    'car_own', 'home', 'infilled']
 
 def read_survey(
     path: str, 
@@ -169,11 +169,12 @@ def fix_nobackhome(df: pd.DataFrame, duration_distribution='empirical') -> pd.Da
     df['mode6'] = np.nan
     df['dest6'] = np.nan
     df['time6'] = np.nan
+    df['infilled'] = False
     for i in range(2, 6):
         j = i + 1
         # check if the return trip is missing
         infill = (n_trips == i) & (df[f'purp{i}'] != '2: return home') & (df[f'purp{i}']  != '5: recreation')
-        
+        df['infilled'] = (df['infilled'] | infill)
         # update next trip's destination, purpose, mode and time
         df[f'dest{j}'] = np.where(infill, df.home, df[f'dest{j}']) # home location to the destinatio
         df[f'purp{j}'] = np.where(infill, '2: return home', df[f'purp{j}'])

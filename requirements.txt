@@ -2,6 +2,7 @@ biogeme>=3.2.10
 click>=7.1.2
 python-Levenshtein>=0.20.9
 scikit-learn>=1.2.0
+seaborn>=0.12.2
 statsmodels>=0.13.5
 tqdm>=4.64.1
 -e git+ssh://git@github.com/arup-group/osmox.git@552510ee668124594f5abcbb835d2b10c119e4e3#egg=osmox

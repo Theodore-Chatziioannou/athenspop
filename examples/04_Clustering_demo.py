@@ -3,10 +3,11 @@ Simple clustering analysis
 """
 
 # %% Import dependencies
-import os
-from pathlib import Path
-import sys
-sys.path.insert(0, os.path.join(Path(__file__).parent.absolute(), '..'))
+if True:
+    import os
+    from pathlib import Path
+    import sys
+    sys.path.insert(0, os.path.join(Path(__file__).parent.absolute(), '..'))
 
 from athenspop import preprocessing
 import pandas as pd
@@ -23,7 +24,9 @@ import sklearn.metrics as sm
 from typing import List
 import matplotlib
 import statsmodels.api as stm
-import datetime
+from scipy.stats import kendalltau
+import itertools
+import seaborn as sns
 
 import biogeme
 import biogeme.database as db
@@ -34,13 +37,27 @@ from biogeme.expressions import Beta
 
 # %% User Input
 path_survey = '/c/Projects/athenspop/demand_data_NTUA'
-path_facilities = '/c/Projects/athenspop/osm/facilities_athens/epsg_2100.geojson'
-path_outputs = '/c/Projects/athenspop/outputs'
+dir_outputs = '/c/Projects/athenspop/'
+n_clusters = 6
+group_other = True # whether to group recreation, visit, other, and service
+run_mnl = False
+drop_infilled = False # whether to drop trips that did not report a return home trip
+
+
+path_outputs = f'outputs_c{n_clusters}'
+if group_other: path_outputs += '_group_other'
+if drop_infilled: path_outputs += '_drop_infilled'
+path_outputs = os.path.join(dir_outputs, path_outputs)
+
+if not os.path.exists(path_outputs):
+    os.mkdir(path_outputs)
 
 # %% Ingest travel survey data
 survey_raw = preprocessing.read_survey(
     os.path.join(path_survey, 'NEW_diaries_athens_final.csv')
 )
+if drop_infilled:
+    survey_raw = survey_raw[~survey_raw.infilled]
 
 # person attributes
 person_attributes = preprocessing.get_person_attributes(survey_raw)
@@ -62,31 +79,36 @@ for hid, pid, person in population.people():
 
 
 #%%
-# print(len(population))
-# hh_rm = [
-#     hid for hid, pid, person in population.people() \
-#         if list(person.plan.activities)[-1].act not in ['home', 'recreation']
-# ]
-# for hid in hh_rm:
-#     del population.households[hid]
-# print(len(population))
-
-
-#%%
 # activity code lookups
-mapping_purposes = {
-    'business': 'b',
-    'education': 'e',
-    'home': 'h',
-    'medical': 'm',
-    'other': 'o',
-    'recreation': 'r',
-    'shop': 's',
-    'service': 'c',
-    'visit': 'v',
-    'work': 'w',
-    'travel': 't'
-}
+if group_other:
+    mapping_purposes = {
+        'business': 'b',
+        'education': 'e',
+        'home': 'h',
+        'medical': 'o',
+        'recreation': 'o',
+        'shop': 'o',
+        'service': 'o',
+        'visit': 'o',
+        'work': 'w',
+        'other': 'o',
+        'travel': 't'
+    }
+else:
+    mapping_purposes = {
+        'business': 'b',
+        'education': 'e',
+        'home': 'h',
+        'medical': 'm',
+        'other': 'o',
+        'recreation': 'r',
+        'shop': 's',
+        'service': 'c',
+        'visit': 'v',
+        'work': 'w',
+        'travel': 't'
+    }
+
 mapping_codes_purposes = {
     v: k for k, v in mapping_purposes.items() if not k.startswith('escort')}
 mapping_codes_int = {v: k for k, v in enumerate(
@@ -182,9 +204,11 @@ for i in range(2, 10):
 
 scores = pd.DataFrame(scores)
 for metric in ['calinksi_harabasz', 'silhouette']:
+    plt.show()
     scores.set_index('clusters')[metric].plot()
     plt.title(f'{metric} score')
     plt.xlabel('Number of clusters')
+    plt.ylim(0)
     export_path=os.path.join(
         path_outputs, f'score_{metric}.png')
     plt.savefig(export_path, bbox_inches='tight')
@@ -192,7 +216,6 @@ for metric in ['calinksi_harabasz', 'silhouette']:
 
 
 # %% apply the clustering algorithm after selecting the number of clusters
-n_clusters = 8
 
 model = AgglomerativeClustering(
     n_clusters=n_clusters, linkage='complete', metric='precomputed'
@@ -352,56 +375,112 @@ attributes['age_group_ordinal'] = attributes['age_group'].map(
 attributes['is_female'] = (attributes['gender'] == 'female') * 1
 attributes['owns_car'] = (attributes['car_own'] == 'yes') * 1
 
-for corr_method in ['spearman', 'kendall']:
-    attributes.drop(columns=['hid','pid','hzone', 'cluster']).corr(corr_method).\
-        to_csv(os.path.join(path_outputs, f'correlation_attributes_{corr_method}.csv'))
+#%% kendall correlation with dummy values and significance
 
-# kendall corellation with dummy values
 corr_binary = attributes.copy()
 corr_binary['cluster'] = corr_binary['cluster'].map(str)
-corr_binary = pd.get_dummies(corr_binary[['education', 'employment','income', 'age_group','cluster']]).corr('kendall')
-corr_binary.to_csv(os.path.join(path_outputs, f'correlation_attributes_binary_kendall.csv'))
+corr_binary = pd.get_dummies(corr_binary[['education', 'employment', 'gender','income', 'age_group','cluster']])
+
+corr_matrix = []
+for i, j in itertools.product(corr_binary.columns, corr_binary.columns):
+    t = kendalltau(x=corr_binary[i], y=corr_binary[j])
+    corr_matrix.append((i, j, t.correlation, t.pvalue))
+
+corr_matrix = pd.DataFrame(corr_matrix)
+corr_matrix.columns = ['x', 'y', 'correlation', 'pvalue']
+corr_matrix.set_index(['x', 'y'], inplace=True)
+corr_matrix.to_csv(os.path.join(path_outputs, f'correlation_attributes_binary_kendall.csv'))
+
+# significant values only
+corr_matrix_significant = corr_matrix.copy()
+corr_matrix_significant['correlation'] = np.where(
+    (corr_matrix_significant.pvalue>0.05) | 
+    (corr_matrix_significant.index.get_level_values(0)==corr_matrix_significant.index.get_level_values(1)) | 
+    (pd.Series(corr_matrix_significant.index.get_level_values(0)).apply(lambda x: x.split('_')[0]) == \
+     pd.Series(corr_matrix_significant.index.get_level_values(1)).apply(lambda x: x.split('_')[0])).values, 
+    np.nan, 
+    corr_matrix_significant['correlation'])
+corr_matrix_significant = corr_matrix_significant['correlation'].unstack(level='y')
+
+cols_order = [x for x in corr_matrix_significant.columns if (x.startswith('cluster') and 'total' not in x)]
+cols_order += [x for x in corr_matrix_significant.columns if not x.startswith('cluster')]
+corr_matrix_significant = corr_matrix_significant.loc[cols_order, cols_order]
+
+corr_matrix_significant.to_csv(os.path.join(path_outputs, f'correlation_attributes_binary_kendall_matrix.csv'))
+corr_matrix_significant
+
+#%% plot kendal heatmap
+fig, ax = plt.subplots(1, 1, figsize=(15,15))
+sns.heatmap(corr_matrix_significant, annot=True, fmt='.2f', 
+            cmap='RdBu' , center=0, vmin=-1, vmax=1, linewidths=0.1,
+            cbar=False, linecolor='lightgrey')
+plt.title('kendall correlation')
+ax.tick_params(labelbottom=True, labeltop=True, labelleft=True, labelright=True, 
+               top=False, bottom=False, left=False, right=False)
+plt.xticks(rotation=90)
+plt.yticks(rotation=0)
+plt.xlabel('')
+plt.ylabel('')
+plt.savefig(os.path.join(path_outputs, 'correlation_attributes_binary_kendall_matrix.png'), bbox_inches='tight')
+plt.show()
 
 #%% plan choice estimation
 
 #%% choice set
 # x_vars = ['gender', 'age_group']
-x_vars = ['gender', 'employment', 'income', 'car_own', 'age_group', 'education']
-base_cluster = pd.Series(model.labels_).value_counts().idxmax() # use cluster with most observations as base
-cluster_ids = set(model.labels_)
+if run_mnl:
+    x_vars = ['gender', 'employment', 'income', 'car_own', 'age_group', 'education']
+    base_cluster = pd.Series(model.labels_).value_counts().idxmax() # use cluster with most observations as base
+    cluster_ids = set(model.labels_)
 
-df_choice = attributes[attributes.cluster!='total'].dropna(subset=x_vars).copy()
-df_choice['cluster'] = df_choice['cluster'].apply(int)
-df_choice = pd.get_dummies(df_choice)
-database = db.Database('attributes', df_choice)
+    df_choice = attributes[attributes.cluster!='total'].dropna(subset=x_vars).copy()
+    df_choice['cluster'] = df_choice['cluster'].apply(int)
+    df_choice = pd.get_dummies(df_choice)
+    database = db.Database('attributes', df_choice)
 
-# utility function
-V = {}
-av = {}
-for cluster_id in cluster_ids:
-    av[cluster_id]=1 # availability
-    V[cluster_id] = Beta(
-        f'int_{cluster_id}', 0, None, None, 
-        (cluster_id==base_cluster) * 1) # intercept
-    for x_var in x_vars:
-        bins = set(attributes.dropna(subset=x_vars)[x_var])
-        for i, x_bin in enumerate(bins):
-            V[cluster_id] += Beta(
-                f'beta_{x_var}_{x_bin}_{cluster_id}', 0, None, None, 
-                ((i==0) | (cluster_id==base_cluster)) * 1
-                ) * database.variables[f'{x_var}_{x_bin}']
+    # utility function
+    V = {}
+    av = {}
+    for cluster_id in cluster_ids:
+        av[cluster_id]=1 # availability
+        V[cluster_id] = Beta(
+            f'int_{cluster_id}', 0, None, None, 
+            (cluster_id==base_cluster) * 1) # intercept
+        for x_var in x_vars:
+            bins = set(attributes.dropna(subset=x_vars)[x_var])
+            for i, x_bin in enumerate(bins):
+                V[cluster_id] += Beta(
+                    f'beta_{x_var}_{x_bin}_{cluster_id}', 0, None, None, 
+                    ((i==0) | (cluster_id==base_cluster)) * 14
+                    ) * database.variables[f'{x_var}_{x_bin}']
 
-# estimate a logit model
-logprob = models.loglogit(V, av, database.variables['cluster'])
-cmodel = biogeme.biogeme.BIOGEME(database, logprob)
-cmodel.modelName = '01logit'
-cmodel.generateHtml=False
-cmodel.generatePickle=False
-cmodel.saveIterations=False
-results = cmodel.estimate()
-pandasResults = results.getEstimatedParameters()
-pandasResults.round(3).to_csv(os.path.join(path_outputs, 'betas_cluster.csv'))
+    # estimate a logit model
+    logprob = models.loglogit(V, av, database.variables['cluster'])
+    cmodel = biogeme.biogeme.BIOGEME(database, logprob)
+    cmodel.modelName = '01logit'
+    cmodel.generateHtml=False
+    cmodel.generatePickle=False
+    cmodel.saveIterations=False
+    results = cmodel.estimate()
+    pandasResults = results.getEstimatedParameters()
+    pandasResults.round(3).to_csv(os.path.join(path_outputs, 'betas_cluster.csv'))
 
-print('MNL results: \n', pandasResults.round(3))
+    print('MNL results: \n', pandasResults.round(3))
+
+#%% marginal effects
+control_vars = ['employment_active', 'employment_student', 'education_tertiary',
+                                  'income_high', 'gender_female', 'age_group_60plus']
+margeffs = []
+for cluster_id in range(n_clusters):
+    margeff = stm.Logit(
+        corr_binary[f'cluster_{cluster_id}'], 
+        stm.add_constant(corr_binary[control_vars])
+    ).fit().get_margeff()
+    margeffs.append(margeff.summary_frame().assign(cluster=cluster_id))
+margeffs = pd.concat(margeffs, axis=0)
+margeffs = margeffs.reset_index()[['cluster','index','dy/dx', 'Pr(>|z|)']]
+margeffs.columns = ['cluster', 'variable', 'dy/dx', 'pvalue']
+margeffs.round(3).to_csv(os.path.join(path_outputs, 'marginal_effects.csv'))
+margeffs[margeffs.pvalue<0.3].round(3)
 
 #%%
