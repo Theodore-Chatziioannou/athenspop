@@ -8,8 +8,8 @@ Creating and analysing synthetic and activity-based demand for Athens.
     - [Installation](#installation)
         - [Ubuntu / Mac OS](#ubuntu--mac-os)
         - [Windows](#windows)
-    - [Examples](#examples)
     - [Running via the command-line interface](#running-via-the-command-line-interface)
+- [Examples](#examples)
 - [Data Requirements](#data-requirements)
 - [Next steps](#next-steps)
 
@@ -54,18 +54,6 @@ conda activate venv
 conda install geopandas
 pip3 install -e .
 ```
-
-
-### Examples
-A simple example can be found under `examples/01_Create_Simple_Athens_Population.py` scipt.
-
-The library creates a number of examples under the `examples` directory:
-* `01_Create_Simple_Athens_Population.py`: creates a simplistic population by resampling and converting the travel diary data to a MATSim-compatible format.
-* `02_Create_Population_OSM_landuse.py`: as above, but using OSM land-use data for facility sampling.
-* `03_Analysis.py`: Demonstrates some reporting and visualisation methods.
-* `04_Clustering_demo.py`: Spatio-temporal clustering of the travel diaries.
-
-
 ### Running via the command-line interface
 Athenspop can be also used via its Command Line Interface (CLI). Once the athenspop library is install, you can run `athenspop --help` to discover the available options.
 
@@ -87,6 +75,18 @@ Therefore, to create a new population you can run:
 ```
 athenspop create population <travel_survey_directory> -o <output_directory>
 ```
+
+## Examples
+A simple example can be found under `examples/01_Create_Simple_Athens_Population.py` scipt.
+
+The library creates a number of examples under the `examples` directory:
+* `01_Create_Simple_Athens_Population.py`: creates a simplistic population by resampling and converting the travel diary data to a MATSim-compatible format.
+* `02_Create_Population_OSM_landuse.py`: as above, but using OSM land-use data for facility sampling.
+* `03_Analysis.py`: Demonstrates some reporting and visualisation methods.
+* `04_Clustering_demo.py`: Spatio-temporal clustering of the travel diaries.
+
+
+
 
 
 ## Data Requirements
