@@ -1,4 +1,4 @@
-biogeme>=3.2.10
+#biogeme>=3.2.10
 click>=7.1.2
 pam[planner]@https://github.com/arup-group/pam/archive/refs/tags/v0.2.1.tar.gz#egg=0.0.1
 python-Levenshtein>=0.20.9
