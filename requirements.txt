@@ -1,8 +1,8 @@
-biogeme>=3.2.10
+#biogeme>=3.2.10
 click>=7.1.2
+pam[planner]@https://github.com/arup-group/pam/archive/refs/tags/v0.2.1.tar.gz#egg=0.0.1
 python-Levenshtein>=0.20.9
 scikit-learn>=1.2.0
 seaborn>=0.12.2
 statsmodels>=0.13.5
 tqdm>=4.64.1
--e git+ssh://git@github.com/arup-group/pam.git@f1199b7c8abd12de765af9f67420fc33be802d21#egg=pam[planner]
