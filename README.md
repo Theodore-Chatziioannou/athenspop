@@ -1,4 +1,4 @@
-# Athenspop: Athens Population Syntesis
+# Athenspop: Athens Population Synthesis
 Creating and analysing synthetic and activity-based mobility demand for Athens Metropolitan Area, Greece.
 
 <!-- TOC depthfrom:2 -->
