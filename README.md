@@ -29,8 +29,7 @@ The aim of this repo is to demonstrate the creation of a synthetic MATSim popula
 
 ### Installation
 
-You can install the library as follows:
-
+The installation requires [virtualvenv](https://virtualenv.pypa.io/en/latest/installation.html) to create a virtual environment where the new packages will be installed. You can install the library as follows:
 
 #### Ubuntu / Mac OS
 
@@ -54,6 +53,8 @@ conda activate venv
 conda install geopandas
 pip3 install -e .
 ```
+Spyder or Jupyter Users: The virtual environment will also need [spyder_kernels](https://pypi.org/project/spyder-kernels/) to run the models 
+
 ### Running via the command-line interface
 Athenspop can be also used via its Command Line Interface (CLI). Once the athenspop library is install, you can run `athenspop --help` to discover the available options.
 
