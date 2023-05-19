@@ -95,7 +95,7 @@ Mode choice - Temporal variations in Athens Metropolitan Area,
 with synthetic travelers equal to 0.1% of the total population
 
 ## Data Requirements
-The repo examples use the NTUA's travel survey as an input. The diaries are self-reported in an online questionnaire, which has been advertised through the radio broadcast and online media of the Hellenic Broadcasting Corporation - [ERT](https://www.ert.gr).
+The repo examples use the NTUA's travel survey as an input. The diaries are self-reported in an online questionnaire, which has been advertised through the radio broadcast and online media of the [Hellenic Broadcasting Corporation - ERT](https://www.ert.gr).
 
 To get a copy of the data please get in touch with the repo's owners.
 
