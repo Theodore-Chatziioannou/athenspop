@@ -89,7 +89,10 @@ The library creates a number of examples under the `examples` directory:
 * `03_Analysis.py`: Demonstrates some reporting and visualisation methods.
 * `04_Clustering_demo.py`: Spatio-temporal clustering of the travel diaries.
 
-ADD A MAP HERE...
+<img src="https://github.com/Theodore-Chatziioannou/athenspop/assets/63541107/94d02503-daf9-45dc-9d0c-1d022a462a23" height="500">
+
+Mode choice - Temporal variations in Athens Metropolitan Area,
+with synthetic travelers equal to 0.1% of the total population
 
 ## Data Requirements
 The repo examples use the NTUA's travel survey as an input. The diaries are self-reported in an online questionnaire, which has been advertised through the radio broadcast and online media of the Hellenic Broadcasting Corporation - [ERT](https://www.ert.gr).
