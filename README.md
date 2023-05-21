@@ -1,4 +1,4 @@
-# <img src="https://github.com/Theodore-Chatziioannou/athenspop/assets/63541107/9af3fdf0-7132-4a4f-8ea0-f50543954303" height="250"> Athens Population Synthesis 
+# <img src="https://github.com/Theodore-Chatziioannou/athenspop/assets/63541107/9af3fdf0-7132-4a4f-8ea0-f50543954303" height="150"> Athens Population Synthesis 
 
 Creating and analysing synthetic and activity-based mobility demand for Athens Metropolitan Area, Greece.
 
