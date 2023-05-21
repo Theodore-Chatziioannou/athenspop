@@ -1,4 +1,5 @@
-# Athenspop: Athens Population Synthesis
+# <img src="https://github.com/Theodore-Chatziioannou/athenspop/assets/63541107/9af3fdf0-7132-4a4f-8ea0-f50543954303" height="250"> Athens Population Synthesis 
+
 Creating and analysing synthetic and activity-based mobility demand for Athens Metropolitan Area, Greece.
 
 <!-- TOC depthfrom:2 -->
@@ -14,6 +15,9 @@ Creating and analysing synthetic and activity-based mobility demand for Athens M
 - [Next steps](#next-steps)
 
 <!-- /TOC -->
+
+
+
 
 ## Introduction
 The aim of this repo is to demonstrate the creation of a synthetic MATSim population for Athens Metropolitan Area (AMA), using the open-source [Population Activity Modeller (PAM)](https://github.com/arup-group/pam) library. PAM is a python API for activity sequence modelling, focusing on the generation and modification of travel demand scenarios.
