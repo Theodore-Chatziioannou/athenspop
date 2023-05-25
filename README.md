@@ -15,6 +15,7 @@ Creating and analysing synthetic and activity-based mobility demand for Athens M
 - [Examples](#examples)
 - [Data Requirements](#data-requirements)
 - [Next steps](#next-steps)
+- [Main Collaborators - Research Team](#main-collaborators---research-team)
 
 <!-- /TOC -->
 
@@ -93,7 +94,7 @@ The library creates a number of examples under the `examples` directory:
 * `01_Create_Simple_Athens_Population.py`: creates a simplistic population by resampling and converting the travel diary data to a MATSim-compatible demand file in .xml format.
 * `02_Create_Population_OSM_landuse.py`: as above, but using OSM land-use data for facility sampling.
 * `03_Analysis.py`: Demonstrates some reporting and visualisation methods.
-* `04_Clustering_demo.py`: Spatio-temporal clustering of the travel diaries.
+* `04_Clustering_demo.py`: Activity-temporal clustering of the travel diaries.
 
 More examples are coming, see next steps..
 
