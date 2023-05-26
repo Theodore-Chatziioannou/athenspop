@@ -41,7 +41,7 @@ The aim of this repo is to demonstrate the creation of a synthetic MATSim popula
 
 The installation of athenspop requires the creation of a virtual environment These can be achieved by installing [virtualvenv](https://virtualenv.pypa.io/en/latest/installation.html) package. 
 
-Spyder of Jupyter users: Keep in mind that the [spyder_kernels](https://pypi.org/project/spyder-kernels/) will not automatically installed in the virtual environment. Please install them before runinng the models in this new environment.
+Spyder or Jupyter users: Keep in mind that the [spyder_kernels](https://pypi.org/project/spyder-kernels/) will not automatically installed in the virtual environment. Please install them before runinng the models in this new environment.
 
 You can install the library as follows:
 
@@ -113,7 +113,7 @@ To get a copy of the data please get in touch with the repo's owners. Below, you
 ## Next steps
 The athenspop is still under development. We aim to further increase the validity of its outputs. The demand scenarios can now be used for research, experimental or educational purposes
 
-Travel patterns observed in the diaries will further investigate in the next months to improve our machine learning tools.
+Travel patterns observed in the diaries will be further investigated in the next months to improve our machine learning tools.
 
 The next (planned) steps aim to "feed" the athenpop algorithms with new info. These are:
 * Demonstrate some plan choice methods (for example, mode choice or plan generation);
@@ -121,7 +121,7 @@ The next (planned) steps aim to "feed" the athenpop algorithms with new info. Th
 * Fuse microdata with more aggregate statistical distributions;
 * Data cropping considering smaller urban areas and external zones;
 * Use of detailed land use shapefiles for AMA to resample spatial patterns more accurately;
-* New vizualizations of synthetic data.
+* New visualisations of synthetic data.
 
 ## Main Collaborators - Research Team
 1) Theodoros Chatziioanou, Senior Data Scientist, City Modeling Lab, ARUP, Theodore.Chatziioannou@arup.com 
