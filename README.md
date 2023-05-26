@@ -99,9 +99,8 @@ The repo examples use the NTUA's travel survey as an input. The 509 diaries are 
 To get a copy of the data please get in touch with the repo's owners. Below, you can find their emails.
 
 ## Examples
-A simple example can be found under `examples/01_Create_Simple_Athens_Population.py` scipt.
 
-The library creates a number of examples under the `examples` directory:
+The library includes a number of examples under the `examples` directory:
 * `01_Create_Simple_Athens_Population.py`: creates a simplistic toy population by resampling and converting the travel diary data to a MATSim-compatible demand file in .xml format.
 * `02_Create_Population_OSM_landuse.py`: as above, but using OSM land-use data for facility sampling.
 * `03_Analysis.py`: Demonstrates some reporting and visualisation methods.
@@ -116,9 +115,9 @@ with synthetic travelers equal to 0.1% of the total population
 
 
 ## Next steps
-The athenspop is still under development. We aim to further increase the validity of its outputs. The demand scenarios can now be used for research, experimental or educational purposes
+The athenspop repo is still under development. We aim to further increase the validity of its outputs. The demand scenarios can now be used for research, experimental or educational purposes
 
-Travel patterns observed in the diaries will be further investigated in the next months to improve our machine learning tools.
+Travel patterns observed in the diaries will be further investigated in the next months to enrich our toolset.
 
 The next (planned) steps aim to "feed" the athenpop algorithms with new info. These are:
 * Demonstrate some plan choice methods (for example, mode choice or plan generation);
