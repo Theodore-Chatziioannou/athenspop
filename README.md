@@ -12,8 +12,8 @@ Creating and analysing synthetic and activity-based mobility demand for Athens M
         - [Ubuntu / Mac OS](#ubuntu--mac-os)
         - [Windows](#windows)
     - [Running via the command-line interface](#running-via-the-command-line-interface)
+    - [Data Requirements](#data-requirements)
 - [Examples](#examples)
-- [Data Requirements](#data-requirements)
 - [Next steps](#next-steps)
 - [Main Collaborators - Research Team](#main-collaborators---research-team)
 
@@ -71,7 +71,6 @@ pip3 install -e .
 ### Running via the command-line interface
 Athenspop can be also used via its Command Line Interface (CLI). Once the athenspop library is install, you can run `athenspop --help` to discover the available options.
 
-For example:
 ```
 $ athenspop create population --help
 
@@ -89,11 +88,21 @@ Therefore, to create a new population you can run:
 athenspop create population <travel_survey_directory> -o <output_directory>
 ```
 
+For example, using the dummy dataset under `tests/example_data` :
+```
+athenspop create population ./tests/example_data -o ./outputs
+```
+
+### Data Requirements
+The repo examples use the NTUA's travel survey as an input. The 509 diaries are self-reported in an online questionnaire, which has been advertised through the radio broadcast and online media of the [Hellenic Broadcasting Corporation - ERT](https://www.ert.gr).
+
+To get a copy of the data please get in touch with the repo's owners. Below, you can find their emails.
+
 ## Examples
 A simple example can be found under `examples/01_Create_Simple_Athens_Population.py` scipt.
 
 The library creates a number of examples under the `examples` directory:
-* `01_Create_Simple_Athens_Population.py`: creates a simplistic population by resampling and converting the travel diary data to a MATSim-compatible demand file in .xml format.
+* `01_Create_Simple_Athens_Population.py`: creates a simplistic toy population by resampling and converting the travel diary data to a MATSim-compatible demand file in .xml format.
 * `02_Create_Population_OSM_landuse.py`: as above, but using OSM land-use data for facility sampling.
 * `03_Analysis.py`: Demonstrates some reporting and visualisation methods.
 * `04_Clustering_demo.py`: Activity-temporal clustering of the travel diaries.
@@ -105,10 +114,6 @@ More examples are coming, see next steps..
 Mode choice - Temporal variations in Athens Metropolitan Area,
 with synthetic travelers equal to 0.1% of the total population
 
-## Data Requirements
-The repo examples use the NTUA's travel survey as an input. The 509 diaries are self-reported in an online questionnaire, which has been advertised through the radio broadcast and online media of the [Hellenic Broadcasting Corporation - ERT](https://www.ert.gr).
-
-To get a copy of the data please get in touch with the repo's owners. Below, you can find their emails
 
 ## Next steps
 The athenspop is still under development. We aim to further increase the validity of its outputs. The demand scenarios can now be used for research, experimental or educational purposes
