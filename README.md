@@ -29,13 +29,11 @@ The aim of this repo is to demonstrate the creation of a synthetic MATSim popula
 
 **How?**: We employ statistical analysis, machine learning, and data fusion methodologies, often via the PAM interface. All the tools have been developed in [Python](https://www.python.org)
 
+**What does it produce**: Athenspop can be used for the analysis and visualisation of the NTUA travel survey data, or the creation of synthetic disaggregate demand scenarios. These toy scenarios can be imported in ABMs, like MATSim.
+
 <br><br><br>
 <img src="./docs/workflow.png" height="300">
 <br><br><br>
-
-**What does it produce**: Athenspop can be used for the analysis and visualisation of the NTUA travel survey data, or the creation of synthetic disaggregate demand scenarios. These toy scenarios can be imported in ABMs, like MATSim.
-
-ADD A FLOW DIAGRAM HERE...
 
 ## Gettting started
 
