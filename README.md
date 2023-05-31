@@ -2,7 +2,7 @@
 
 # athenspop: Athens Population Synthesis 
 
-Creating and analysing synthetic and activity-based mobility demand for Athens Metropolitan Area, Greece.
+Developing and analysing synthetic and activity-based mobility demand scenarios for Athens Metropolitan Area, Greece.
 
 <!-- TOC depthfrom:2 -->
 
@@ -23,13 +23,13 @@ Creating and analysing synthetic and activity-based mobility demand for Athens M
 
 
 ## Introduction
-The aim of this repo is to demonstrate the creation of a synthetic MATSim population for Athens Metropolitan Area (AMA), using the open-source [Population Activity Modeller (PAM)](https://github.com/arup-group/pam) library. PAM is a python API for activity sequence modelling, focusing on the generation and modification of travel demand scenarios.
+The aim of this repo is to demonstrate methods for the creation of a synthetic MATSim population for Athens Metropolitan Area (AMA), using the open-source [Population Activity Modeller (PAM)](https://github.com/arup-group/pam) library. PAM is a python API for activity sequence modelling, focusing on the generation and modification of travel demand scenarios.
 
 **Why?**: Transport planners and decision-makers are increasingly facing difficult questions, such as decarbonisation and transport equity, which require appropriate tools and data to help us answer them effectively. The limited availability of disaggregate mobility data creates insuperable obstacles in the assessment of sustainable mobility measures and policies. Activity- and agent-based modelling techniques provide us with bottom-up approaches for simulating complex travel patterns, focusing on the behavioural drivers behind invividuals' travel decisions. Through simple examples and case studies, we wish to demonstrate such approaches and gain better understanding of existing datasets.
 
-**How?**: We employ statistical analysis, machine learning, and data fusion methodologies, often via the PAM interface. All the tools have been developed in [Python](https://www.python.org)
+**How?**: We employ statistical analysis, machine learning, and data fusion methodologies, typically through the PAM interface. All the tools have been developed in [Python](https://www.python.org)
 
-**What does it produce**: Athenspop can be used for the analysis and visualisation of the NTUA travel survey data, or the creation of synthetic disaggregate demand scenarios. These toy scenarios can be imported in ABMs, like MATSim.
+**What does it produce**: Athenspop can be used for the analysis and visualisation of the NTUA travel survey data, or the creation of experimental synthetic and disaggregate demand scenarios. These toy scenarios can be imported in ABMs, like MATSim.
 
 <br>
 <img src="./docs/workflow.png" height="300">
@@ -115,9 +115,7 @@ with synthetic travelers equal to 0.1% of the total population
 
 
 ## Next steps
-The athenspop repo is still under development. We aim to further increase the validity of its outputs. The demand scenarios can now be used for research, experimental or educational purposes
-
-Travel patterns observed in the diaries will be further investigated in the next months to enrich our toolset.
+The athenspop repo is still under development. We aim to further enrich it with more data inputs and methodologies, supporting the development of more complex and/or realistic demand representations. The demand scenarios can now be used for research, experimental or educational purposes.
 
 The next (planned) steps aim to "feed" the athenpop algorithms with new info. These are:
 * Demonstrate some plan choice methods (for example, mode choice or plan generation);
