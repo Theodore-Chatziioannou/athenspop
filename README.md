@@ -30,7 +30,7 @@ The aim of this repo is to demonstrate methods for the creation of a synthetic M
 **What does it produce**: Athenspop can be used for the analysis and visualisation of the NTUA travel survey data, or the creation of experimental synthetic and disaggregate demand scenarios. These toy scenarios can be imported in ABMs, like MATSim.
 
 <br>
-<img src="./docs/workflow.png" height="300">
+<img src="./docs/workflow.png" height="350">
 <br>
 
 ## Gettting started
